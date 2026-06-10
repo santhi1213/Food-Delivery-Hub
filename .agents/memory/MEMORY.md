@@ -1,0 +1,2 @@
+- [react-native-maps web crash](rn-maps-web.md) — never import react-native-maps at module level; use .native.tsx + .tsx platform split
+- [MongoDB Atlas dev setup](mongodb-atlas.md) — server must not exit on DB connection failure; Atlas IP whitelist required

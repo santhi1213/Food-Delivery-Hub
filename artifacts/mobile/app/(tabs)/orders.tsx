@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   Platform,
   RefreshControl,
@@ -12,7 +12,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { OrderCard } from "@/components/OrderCard";
+import { useAuth } from "@/context/AuthContext";
 import { MOCK_ORDERS, Order } from "@/data/mockData";
+import { api } from "@/lib/api";
 import { useColors } from "@/hooks/useColors";
 
 const TABS = ["Active", "Past"] as const;
@@ -20,19 +22,39 @@ const TABS = ["Active", "Past"] as const;
 export default function OrdersScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState<"Active" | "Past">("Active");
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const loadOrders = useCallback(async () => {
-    const stored = await AsyncStorage.getItem("user_orders");
-    const userOrders: Order[] = stored ? JSON.parse(stored) : [];
-    setOrders([...userOrders, ...MOCK_ORDERS]);
-  }, []);
+    if (!isAuthenticated) {
+      setOrders(MOCK_ORDERS);
+      return;
+    }
+    try {
+      const { orders: serverOrders } = await api.orders.list();
+      const mapped: Order[] = serverOrders.map((o: any) => ({
+        id: o._id,
+        restaurantId: o.restaurantId,
+        restaurantName: o.restaurantName,
+        items: o.items.map((i: any) => ({ id: i.itemId, name: i.name, qty: i.qty, price: i.price })),
+        status: o.status,
+        subtotal: o.subtotal,
+        deliveryFee: o.deliveryFee,
+        discount: o.discount,
+        total: o.total,
+        date: o.createdAt,
+        estimatedTime: o.estimatedTime,
+      }));
+      setOrders(mapped.length > 0 ? mapped : MOCK_ORDERS);
+    } catch {
+      setOrders(MOCK_ORDERS);
+    }
+  }, [isAuthenticated]);
 
-  useEffect(() => { loadOrders(); }, [loadOrders]);
+  useFocusEffect(useCallback(() => { loadOrders(); }, [loadOrders]));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -52,13 +74,11 @@ export default function OrdersScreen() {
           {TABS.map((t) => (
             <TouchableOpacity
               key={t}
-              style={[styles.tabBtn, tab === t && { backgroundColor: colors.card, shadowColor: "#000" }]}
+              style={[styles.tabBtn, tab === t && { backgroundColor: colors.card }]}
               onPress={() => setTab(t)}
               activeOpacity={0.75}
             >
-              <Text style={[styles.tabText, { color: tab === t ? colors.foreground : colors.mutedForeground }]}>
-                {t}
-              </Text>
+              <Text style={[styles.tabText, { color: tab === t ? colors.foreground : colors.mutedForeground }]}>{t}</Text>
               {t === "Active" && active.length > 0 && (
                 <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                   <Text style={styles.badgeText}>{active.length}</Text>
@@ -80,9 +100,7 @@ export default function OrdersScreen() {
               {tab === "Active" ? "No active orders" : "No past orders"}
             </Text>
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              {tab === "Active"
-                ? "Your current orders will appear here"
-                : "Your order history will appear here"}
+              {tab === "Active" ? "Your current orders will appear here" : "Your order history will appear here"}
             </Text>
           </View>
         ) : (
@@ -95,39 +113,12 @@ export default function OrdersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
+  header: { paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 14 },
-  tabBar: {
-    flexDirection: "row",
-    borderRadius: 12,
-    padding: 4,
-  },
-  tabBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 9,
-    borderRadius: 10,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+  tabBar: { flexDirection: "row", borderRadius: 12, padding: 4 },
+  tabBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 9, borderRadius: 10 },
   tabText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  badge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 5,
-  },
+  badge: { minWidth: 18, height: 18, borderRadius: 9, justifyContent: "center", alignItems: "center", paddingHorizontal: 5 },
   badgeText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
   content: { padding: 16 },
   empty: { alignItems: "center", gap: 10, paddingVertical: 80 },
