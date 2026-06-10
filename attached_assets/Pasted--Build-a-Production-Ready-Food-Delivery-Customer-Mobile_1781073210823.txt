@@ -1,0 +1,498 @@
+# Build a Production-Ready Food Delivery Customer Mobile Application
+
+Create a complete food delivery customer mobile application similar to Zomato and Swiggy using React Native and Expo.
+
+## Objective
+
+Develop a modern, scalable, production-ready food ordering mobile application that can be published to both Google Play Store and Apple App Store.
+
+The application should focus only on the Customer App and consume APIs from an existing Node.js/Express/MongoDB backend.
+
+---
+
+# Technology Stack
+
+Frontend:
+
+* React Native
+* Expo
+* React Navigation
+* Redux Toolkit
+* Axios
+* NativeWind (Tailwind CSS for React Native)
+* React Hook Form
+* Async Storage
+
+Integrations:
+
+* Google Maps API
+* Firebase Cloud Messaging (Push Notifications)
+* Stripe/Razorpay Payment Integration
+* Socket.io Client for Real-Time Tracking
+
+---
+
+# Authentication Module
+
+## Screens
+
+### Splash Screen
+
+* App Logo
+* Animated Loading
+* Auto Login Check
+
+### Welcome Screen
+
+* Login
+* Sign Up
+* Continue as Guest
+
+### Login Screen
+
+* Email Login
+* Phone Number Login
+* Password Login
+* Forgot Password
+
+### Registration Screen
+
+* Full Name
+* Mobile Number
+* Email
+* Password
+* Confirm Password
+
+### OTP Verification Screen
+
+* OTP Input
+* Resend OTP
+* Timer Countdown
+
+### Forgot Password Screen
+
+* Email Verification
+* OTP Verification
+* Reset Password
+
+---
+
+# Home Screen
+
+Modern UI inspired by Zomato and Swiggy.
+
+## Features
+
+### Location Selector
+
+* Current Location
+* Saved Addresses
+* Google Maps Integration
+
+### Search Bar
+
+* Search Restaurants
+* Search Food Items
+* Recent Searches
+
+### Promotional Banner Slider
+
+* Auto Sliding Carousel
+* Dynamic API Data
+
+### Categories
+
+Display categories such as:
+
+* Biryani
+* Pizza
+* Burgers
+* South Indian
+* Chinese
+* Desserts
+* Beverages
+
+### Popular Restaurants
+
+Display:
+
+* Restaurant Image
+* Restaurant Name
+* Rating
+* Delivery Time
+* Distance
+
+### Recommended Dishes
+
+Display:
+
+* Food Image
+* Price
+* Rating
+* Add to Cart Button
+
+---
+
+# Restaurant Listing Screen
+
+## Features
+
+### Filters
+
+* Veg Only
+* Non-Veg
+* Fast Delivery
+* Top Rated
+* Open Now
+
+### Sorting
+
+* Popularity
+* Rating
+* Delivery Time
+* Price Low to High
+* Price High to Low
+
+### Restaurant Cards
+
+Show:
+
+* Image
+* Name
+* Rating
+* Cuisine
+* Delivery Time
+* Minimum Order
+
+---
+
+# Restaurant Details Screen
+
+## Sections
+
+### Restaurant Information
+
+* Restaurant Banner
+* Name
+* Address
+* Ratings
+* Delivery Time
+
+### Menu Categories
+
+* Starters
+* Main Course
+* Desserts
+* Beverages
+
+### Food Item Card
+
+Display:
+
+* Image
+* Name
+* Description
+* Price
+* Rating
+* Veg/Non-Veg Badge
+* Add Button
+
+### Cart Actions
+
+* Increase Quantity
+* Decrease Quantity
+* Remove Item
+
+---
+
+# Search Screen
+
+## Features
+
+* Search Restaurants
+* Search Food
+* Trending Searches
+* Recent Searches
+* Voice Search
+
+---
+
+# Cart Screen
+
+## Features
+
+### Cart Items
+
+* Item Name
+* Quantity
+* Price
+* Remove Item
+
+### Pricing Summary
+
+* Item Total
+* Delivery Fee
+* Tax
+* Discount
+* Grand Total
+
+### Coupon Section
+
+* Apply Coupon
+* Remove Coupon
+
+### Checkout Button
+
+---
+
+# Address Management
+
+## Features
+
+### Address List
+
+* Home
+* Work
+* Other
+
+### Add Address
+
+* Google Maps Picker
+* Manual Address Entry
+* Landmark
+* Address Type
+
+### Edit Address
+
+### Delete Address
+
+---
+
+# Checkout Screen
+
+## Sections
+
+### Delivery Address
+
+### Order Summary
+
+### Coupon Summary
+
+### Payment Method Selection
+
+Options:
+
+* UPI
+* Credit Card
+* Debit Card
+* Net Banking
+* Wallet
+* Cash on Delivery
+
+### Place Order Button
+
+---
+
+# Order Success Screen
+
+Display:
+
+* Success Animation
+* Order Number
+* Estimated Delivery Time
+* Track Order Button
+
+---
+
+# Order Tracking Screen
+
+Implement Real-Time Tracking.
+
+Order Status Flow:
+
+1. Order Placed
+2. Accepted by Restaurant
+3. Preparing Food
+4. Ready for Pickup
+5. Picked Up
+6. On The Way
+7. Delivered
+
+## Features
+
+* Live Status Updates
+* Progress Timeline
+* Live Delivery Agent Location
+* Google Maps Tracking
+
+Use Socket.io for real-time communication.
+
+---
+
+# My Orders Screen
+
+## Features
+
+### Active Orders
+
+### Completed Orders
+
+### Cancelled Orders
+
+### Reorder Functionality
+
+---
+
+# Wishlist / Favorites
+
+## Features
+
+* Save Restaurants
+* Save Food Items
+* Remove Favorites
+
+---
+
+# Notifications Screen
+
+## Features
+
+Push Notifications For:
+
+* Order Updates
+* Offers
+* Discounts
+* Promotions
+
+Use Firebase Cloud Messaging.
+
+---
+
+# User Profile
+
+## Features
+
+### Personal Information
+
+* Name
+* Email
+* Mobile Number
+* Profile Photo
+
+### Settings
+
+* Dark Mode
+* Light Mode
+* Language Selection
+
+### Account Options
+
+* Saved Addresses
+* Favorites
+* Order History
+* Help Center
+* Logout
+
+---
+
+# Reviews & Ratings
+
+## Features
+
+* Rate Restaurant
+* Rate Food
+* Write Review
+* Upload Food Photos
+
+---
+
+# UI/UX Requirements
+
+Design should be modern and premium like Swiggy and Zomato.
+
+Requirements:
+
+* Clean Design
+* Dark Mode
+* Light Mode
+* Smooth Animations
+* Skeleton Loading
+* Empty States
+* Error Handling
+* Pull to Refresh
+* Infinite Scrolling
+
+---
+
+# Folder Structure
+
+Create a scalable folder structure:
+
+* assets
+* components
+* screens
+* navigation
+* redux
+* services
+* hooks
+* utils
+* constants
+* theme
+* types
+
+---
+
+# State Management
+
+Use Redux Toolkit for:
+
+* Authentication
+* User Profile
+* Cart
+* Orders
+* Favorites
+* Notifications
+
+---
+
+# API Integration
+
+Create reusable Axios API service layer.
+
+Include:
+
+* Request Interceptors
+* Response Interceptors
+* JWT Token Handling
+* Error Handling
+
+---
+
+# Performance Optimization
+
+Implement:
+
+* Lazy Loading
+* Memoization
+* FlatList Optimization
+* Image Caching
+* API Caching
+
+---
+
+# Deliverables
+
+Generate:
+
+1. Complete React Native Expo Application.
+2. Production-Ready Folder Structure.
+3. Redux Toolkit Setup.
+4. React Navigation Setup.
+5. API Service Layer.
+6. Reusable Components.
+7. Google Maps Integration.
+8. Push Notification Integration.
+9. Real-Time Order Tracking.
+10. Play Store and App Store Ready Code.
+
+The generated code should be modular, reusable, scalable, responsive, and production-ready.

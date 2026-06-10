@@ -1,0 +1,26 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "buH1EmuOFgcmhAx2hqQvY"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "food delivery app icon"
+
+[[generated]]
+id = "tZzyUHKS-poRMoj_QWV_U"
+uri = "file://artifacts/mobile/assets/images/banner1.png"
+type = "image"
+title = "food banner biryani"
+
+[[generated]]
+id = "gpHfH8M8FirSb8aMM1EU1"
+uri = "file://artifacts/mobile/assets/images/banner2.png"
+type = "image"
+title = "food banner burger"
+
+[[generated]]
+id = "nRRz1SFNzNrid-CgIlAFZ"
+uri = "file://artifacts/mobile/assets/images/banner3.png"
+type = "image"
+title = "food banner pizza"
