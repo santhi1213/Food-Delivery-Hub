@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -14,31 +13,67 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import { useColors } from "@/hooks/useColors";
 
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const handleLogin = async () => {
+    setError(null);
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+      setError("Please enter your email and password.");
       return;
     }
     setLoading(true);
     try {
-      await login(email.trim(), password);
-    } catch {
-      Alert.alert("Error", "Invalid credentials. Please try again.");
+      await login(email.trim().toLowerCase(), password);
+    } catch (err: any) {
+      setError(err?.message ?? "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError(null);
+    setDemoLoading(true);
+    const demoEmail = "demo@foodrush.app";
+    const demoPwd = "demo123456";
+    try {
+      await login(demoEmail, demoPwd);
+    } catch {
+      // Demo user doesn't exist yet — auto-create it
+      try {
+        await register("Demo User", demoEmail, "9000000000", demoPwd);
+      } catch (regErr: any) {
+        // If "already registered" error we can ignore and try login again
+        if (!regErr?.message?.includes("already")) {
+          setError("Could not start demo. Please create an account.");
+          setDemoLoading(false);
+          return;
+        }
+        // Try login one more time
+        try {
+          await login(demoEmail, demoPwd);
+        } catch (finalErr: any) {
+          setError(finalErr?.message ?? "Demo login failed.");
+          setDemoLoading(false);
+          return;
+        }
+      }
+    } finally {
+      setDemoLoading(false);
     }
   };
 
@@ -58,16 +93,24 @@ export default function LoginScreen() {
           Sign in to access your orders and saved addresses
         </Text>
 
+        {/* Inline error banner */}
+        {error && (
+          <View style={[styles.errorBanner, { backgroundColor: "#fef2f2", borderColor: "#fecaca" }]}>
+            <Ionicons name="alert-circle" size={16} color="#ef4444" />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
         <View style={styles.form}>
           <Text style={[styles.label, { color: colors.foreground }]}>Email Address</Text>
-          <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: error ? "#fca5a5" : colors.border }]}>
             <Ionicons name="mail-outline" size={20} color={colors.mutedForeground} />
             <TextInput
               style={[styles.input, { color: colors.foreground }]}
               placeholder="your@email.com"
               placeholderTextColor={colors.mutedForeground}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => { setEmail(t); setError(null); }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -75,14 +118,14 @@ export default function LoginScreen() {
           </View>
 
           <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
-          <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: error ? "#fca5a5" : colors.border }]}>
             <Ionicons name="lock-closed-outline" size={20} color={colors.mutedForeground} />
             <TextInput
               style={[styles.input, { color: colors.foreground }]}
               placeholder="Enter password"
               placeholderTextColor={colors.mutedForeground}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(t) => { setPassword(t); setError(null); }}
               secureTextEntry={!showPwd}
               autoCapitalize="none"
             />
@@ -98,7 +141,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[styles.loginBtn, { backgroundColor: loading ? colors.muted : colors.primary }]}
             onPress={handleLogin}
-            disabled={loading}
+            disabled={loading || demoLoading}
             activeOpacity={0.85}
           >
             {loading ? (
@@ -111,17 +154,24 @@ export default function LoginScreen() {
 
         <View style={styles.divider}>
           <View style={[styles.line, { backgroundColor: colors.border }]} />
-          <Text style={[styles.orText, { color: colors.mutedForeground }]}>or continue with</Text>
+          <Text style={[styles.orText, { color: colors.mutedForeground }]}>or</Text>
           <View style={[styles.line, { backgroundColor: colors.border }]} />
         </View>
 
         <TouchableOpacity
-          style={[styles.googleBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={[styles.demoBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
           activeOpacity={0.85}
-          onPress={() => login("demo@foodrush.app", "demo")}
+          onPress={handleDemoLogin}
+          disabled={loading || demoLoading}
         >
-          <Ionicons name="logo-google" size={20} color="#EA4335" />
-          <Text style={[styles.googleBtnText, { color: colors.foreground }]}>Continue with Google</Text>
+          {demoLoading ? (
+            <ActivityIndicator color={colors.primary} size="small" />
+          ) : (
+            <>
+              <Ionicons name="flash" size={18} color={colors.primary} />
+              <Text style={[styles.demoBtnText, { color: colors.foreground }]}>Try Demo Account</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <View style={styles.signupRow}>
@@ -145,21 +195,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: { width: 44, height: 44, justifyContent: "center" },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 17,
-    fontFamily: "Inter_600SemiBold",
-  },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontFamily: "Inter_600SemiBold" },
   content: { padding: 24 },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 6 },
-  subtitle: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 28 },
+  subtitle: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 20 },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  errorText: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium", color: "#ef4444", lineHeight: 19 },
   form: { gap: 4 },
   label: { fontSize: 13, fontFamily: "Inter_600SemiBold", marginBottom: 6, marginTop: 12 },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
@@ -168,26 +223,22 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", padding: 0 },
   forgotBtn: { alignSelf: "flex-end", marginTop: 10, marginBottom: 6 },
   forgotText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  loginBtn: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
+  loginBtn: { paddingVertical: 16, borderRadius: 14, alignItems: "center", marginTop: 8 },
   loginBtnText: { fontSize: 16, fontFamily: "Inter_700Bold" },
-  divider: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 24 },
+  divider: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 20 },
   line: { flex: 1, height: StyleSheet.hairlineWidth },
   orText: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  googleBtn: {
+  demoBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 8,
     borderWidth: 1,
     borderRadius: 14,
     paddingVertical: 14,
+    minHeight: 52,
   },
-  googleBtnText: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  demoBtnText: { fontSize: 15, fontFamily: "Inter_500Medium" },
   signupRow: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
   signupText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   signupLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
