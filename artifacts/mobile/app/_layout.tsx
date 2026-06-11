@@ -17,6 +17,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { FavoritesProvider } from "@/context/FavoritesContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,6 +46,11 @@ function RootLayoutNav() {
       <Stack.Screen name="cart" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       <Stack.Screen name="checkout" />
       <Stack.Screen name="order-tracking/[id]" />
+      <Stack.Screen name="addresses" />
+      <Stack.Screen name="favourites" />
+      <Stack.Screen name="payment-methods" />
+      <Stack.Screen name="help" />
+      <Stack.Screen name="privacy" />
     </Stack>
   );
 }
@@ -68,19 +74,21 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <AuthProvider>
-                <CartProvider>
-                  <FavoritesProvider>
-                    <RootLayoutNav />
-                  </FavoritesProvider>
-                </CartProvider>
-              </AuthProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </QueryClientProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <KeyboardProvider>
+                <AuthProvider>
+                  <CartProvider>
+                    <FavoritesProvider>
+                      <RootLayoutNav />
+                    </FavoritesProvider>
+                  </CartProvider>
+                </AuthProvider>
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </QueryClientProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );
