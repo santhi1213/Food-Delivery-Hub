@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
-  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -50,17 +49,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const colorScheme = useColorScheme();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-
-  const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: () => logout(),
-      },
-    ]);
-  };
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -164,12 +153,36 @@ export default function ProfileScreen() {
 
         {user && (
           <View style={[styles.section, { backgroundColor: colors.card }]}>
-            <MenuRow
-              icon="log-out-outline"
-              label="Sign Out"
-              onPress={handleLogout}
-              danger
-            />
+            {confirmLogout ? (
+              <View style={styles.logoutConfirm}>
+                <Text style={[styles.logoutConfirmText, { color: colors.foreground }]}>
+                  Sign out of FoodRush?
+                </Text>
+                <View style={styles.logoutConfirmBtns}>
+                  <TouchableOpacity
+                    style={[styles.logoutCancelBtn, { borderColor: colors.border }]}
+                    onPress={() => setConfirmLogout(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.logoutCancelText, { color: colors.foreground }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.logoutConfirmBtn}
+                    onPress={() => { setConfirmLogout(false); logout(); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.logoutConfirmBtnText}>Sign Out</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <MenuRow
+                icon="log-out-outline"
+                label="Sign Out"
+                onPress={() => setConfirmLogout(true)}
+                danger
+              />
+            )}
           </View>
         )}
 
@@ -257,4 +270,23 @@ const styles = StyleSheet.create({
   themeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   themeBadgeText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   version: { textAlign: "center", fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 8 },
+  logoutConfirm: { padding: 16, gap: 12 },
+  logoutConfirmText: { fontSize: 15, fontFamily: "Inter_500Medium", textAlign: "center" },
+  logoutConfirmBtns: { flexDirection: "row", gap: 10 },
+  logoutCancelBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  logoutCancelText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  logoutConfirmBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 10,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+  },
+  logoutConfirmBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });
