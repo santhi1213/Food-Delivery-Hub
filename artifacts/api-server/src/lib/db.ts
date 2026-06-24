@@ -6,7 +6,7 @@ let isConnected = false;
 export async function connectDB() {
   if (isConnected) return;
 
-  const uri = process.env["MONGODB_URI"];
+  const uri = "mongodb+srv://santhiraju32_db_user:AJKUlUtr6alE8cu3@cluster0.dekolvy.mongodb.net/?appName=Cluster0";
   if (!uri) throw new Error("MONGODB_URI is not set");
 
   try {

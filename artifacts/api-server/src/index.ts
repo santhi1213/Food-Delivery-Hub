@@ -4,10 +4,12 @@ import { logger } from "./lib/logger";
 import { connectDB } from "./lib/db";
 import { initSocket } from "./lib/socket";
 
-const rawPort = process.env["PORT"];
-if (!rawPort) throw new Error("PORT environment variable is required");
-const port = Number(rawPort);
-if (Number.isNaN(port) || port <= 0) throw new Error(`Invalid PORT: "${rawPort}"`);
+// const rawPort = process.env["PORT"];
+// if (!rawPort) throw new Error("PORT environment variable is required");
+// const port = Number(rawPort);
+// if (Number.isNaN(port) || port <= 0) throw new Error(`Invalid PORT: "${rawPort}"`);
+
+const port = 5000;
 
 const httpServer = http.createServer(app);
 initSocket(httpServer);

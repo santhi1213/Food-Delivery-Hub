@@ -8,8 +8,8 @@ import { getIO } from "../lib/socket";
 const router = Router();
 
 const razorpay = new Razorpay({
-  key_id: process.env["RAZORPAY_KEY_ID"] ?? "",
-  key_secret: process.env["RAZORPAY_KEY_SECRET"] ?? "",
+  key_id: "rzp_test_T0cnpwfJWdXQvy",
+  key_secret: "itm6sotg1tiTppIv9GaeRahE",
 });
 
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
@@ -59,7 +59,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     res.status(201).json({
       order,
       razorpayOrderId,
-      razorpayKeyId: process.env["RAZORPAY_KEY_ID"],
+      razorpayKeyId: "rzp_test_T0cnpwfJWdXQvy",
     });
 
     setTimeout(() => simulateOrderProgress(order._id.toString()), 3000);
@@ -73,7 +73,7 @@ router.post("/verify-payment", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
 
-    const secret = process.env["RAZORPAY_KEY_SECRET"] ?? "";
+    const secret = "itm6sotg1tiTppIv9GaeRahE";
     const body = `${razorpayOrderId}|${razorpayPaymentId}`;
     const expectedSig = crypto.createHmac("sha256", secret).update(body).digest("hex");
 

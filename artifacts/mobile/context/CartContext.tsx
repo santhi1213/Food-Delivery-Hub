@@ -1,145 +1,334 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { MenuItem } from "@/data/mockData";
+// import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// export interface CartItem {
+//   id: string;
+//   name: string;
+//   price: number;
+//   quantity: number;
+//   isVeg: boolean;
+//   restaurantId: string;
+//   restaurantName: string;
+//   image?: string;
+// }
+
+// interface CartContextType {
+//   items: CartItem[];
+//   restaurantId: string | null;
+//   restaurantName: string | null;
+//   subtotal: number;
+//   totalItems: number;
+//   addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+//   updateQuantity: (itemId: string, change: number) => void;
+//   removeItem: (itemId: string) => void;
+//   clearCart: () => void;
+//   getCartCount: () => number;
+// }
+
+// const CartContext = createContext<CartContextType | undefined>(undefined);
+
+// export const useCart = () => {
+//   const context = useContext(CartContext);
+//   if (!context) {
+//     throw new Error('useCart must be used within a CartProvider');
+//   }
+//   return context;
+// };
+
+// interface CartProviderProps {
+//   children: ReactNode;
+// }
+
+// export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
+//   const [items, setItems] = useState<CartItem[]>([]);
+//   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+//   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+
+//   // Load cart from storage on mount
+//   useEffect(() => {
+//     loadCart();
+//   }, []);
+
+//   // Save cart to storage whenever it changes
+//   useEffect(() => {
+//     saveCart();
+//   }, [items, restaurantId, restaurantName]);
+
+//   const loadCart = async () => {
+//     try {
+//       const stored = await AsyncStorage.getItem('cart');
+//       if (stored) {
+//         const data = JSON.parse(stored);
+//         setItems(data.items || []);
+//         setRestaurantId(data.restaurantId || null);
+//         setRestaurantName(data.restaurantName || null);
+//       }
+//     } catch (error) {
+//       console.error('Error loading cart:', error);
+//     }
+//   };
+
+//   const saveCart = async () => {
+//     try {
+//       await AsyncStorage.setItem('cart', JSON.stringify({
+//         items,
+//         restaurantId,
+//         restaurantName,
+//       }));
+//     } catch (error) {
+//       console.error('Error saving cart:', error);
+//     }
+//   };
+
+//   const addToCart = (item: Omit<CartItem, 'quantity'>) => {
+//     // If cart has items from a different restaurant, ask to clear
+//     if (restaurantId && restaurantId !== item.restaurantId) {
+//       // This should be handled with an alert in the component
+//       // For now, we'll clear and add new
+//       setItems([]);
+//       setRestaurantId(item.restaurantId);
+//       setRestaurantName(item.restaurantName);
+//       setItems([{ ...item, quantity: 1 }]);
+//       return;
+//     }
+
+//     // If cart is empty, set restaurant
+//     if (items.length === 0) {
+//       setRestaurantId(item.restaurantId);
+//       setRestaurantName(item.restaurantName);
+//     }
+
+//     // Check if item already exists
+//     const existingIndex = items.findIndex(i => i.id === item.id);
+//     if (existingIndex >= 0) {
+//       const updated = [...items];
+//       updated[existingIndex].quantity += 1;
+//       setItems(updated);
+//     } else {
+//       setItems([...items, { ...item, quantity: 1 }]);
+//     }
+//   };
+
+//   const updateQuantity = (itemId: string, change: number) => {
+//     const updated = items.map(item => {
+//       if (item.id === itemId) {
+//         const newQty = item.quantity + change;
+//         if (newQty <= 0) return null;
+//         return { ...item, quantity: newQty };
+//       }
+//       return item;
+//     }).filter(Boolean) as CartItem[];
+    
+//     setItems(updated);
+//     if (updated.length === 0) {
+//       setRestaurantId(null);
+//       setRestaurantName(null);
+//     }
+//   };
+
+//   const removeItem = (itemId: string) => {
+//     const updated = items.filter(item => item.id !== itemId);
+//     setItems(updated);
+//     if (updated.length === 0) {
+//       setRestaurantId(null);
+//       setRestaurantName(null);
+//     }
+//   };
+
+//   const clearCart = () => {
+//     setItems([]);
+//     setRestaurantId(null);
+//     setRestaurantName(null);
+//     AsyncStorage.removeItem('cart');
+//   };
+
+//   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+//   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+//   const getCartCount = () => totalItems;
+
+//   return (
+//     <CartContext.Provider value={{
+//       items,
+//       restaurantId,
+//       restaurantName,
+//       subtotal,
+//       totalItems,
+//       addToCart,
+//       updateQuantity,
+//       removeItem,
+//       clearCart,
+//       getCartCount,
+//     }}>
+//       {children}
+//     </CartContext.Provider>
+//   );
+// };
+
+
+// context/CartContext.tsx
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface CartItem {
-  item: MenuItem;
+  id: string;
+  name: string;
+  price: number;
   quantity: number;
-}
-
-interface CartState {
-  items: CartItem[];
-  restaurantId: string | null;
-  restaurantName: string | null;
+  isVeg: boolean;
+  restaurantId: string;
+  restaurantName: string;
+  image?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
   restaurantId: string | null;
   restaurantName: string | null;
-  addItem: (item: MenuItem, restaurantId: string, restaurantName: string) => void;
-  removeItem: (itemId: string) => void;
-  updateQuantity: (itemId: string, delta: number) => void;
-  getQuantity: (itemId: string) => number;
-  clearCart: () => void;
-  itemCount: number;
   subtotal: number;
+  totalItems: number;
+  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  updateQuantity: (itemId: string, change: number) => void;
+  removeItem: (itemId: string) => void;
+  clearCart: () => void;
+  getCartCount: () => number;
 }
 
-const CartContext = createContext<CartContextType | null>(null);
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartState>({ items: [], restaurantId: null, restaurantName: null });
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+};
 
+interface CartProviderProps {
+  children: ReactNode;
+}
+
+export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [restaurantName, setRestaurantName] = useState<string | null>(null);
+
+  // Load cart from storage on mount
   useEffect(() => {
-    AsyncStorage.getItem("cart").then((data) => {
-      if (data) setCart(JSON.parse(data));
-    });
+    loadCart();
   }, []);
 
-  const persist = useCallback((state: CartState) => {
-    AsyncStorage.setItem("cart", JSON.stringify(state));
-  }, []);
+  // Save cart to storage whenever it changes
+  useEffect(() => {
+    saveCart();
+  }, [items, restaurantId, restaurantName]);
 
-  const addItem = useCallback(
-    (item: MenuItem, rId: string, rName: string) => {
-      setCart((prev) => {
-        const isDifferentRestaurant = prev.restaurantId !== null && prev.restaurantId !== rId;
-        let newItems: CartItem[];
+  const loadCart = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('cart');
+      if (stored) {
+        const data = JSON.parse(stored);
+        setItems(data.items || []);
+        setRestaurantId(data.restaurantId || null);
+        setRestaurantName(data.restaurantName || null);
+      }
+    } catch (error) {
+      console.error('Error loading cart:', error);
+    }
+  };
 
-        if (isDifferentRestaurant) {
-          newItems = [{ item, quantity: 1 }];
-        } else {
-          const existing = prev.items.find((c) => c.item.id === item.id);
-          if (existing) {
-            newItems = prev.items.map((c) =>
-              c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
-            );
-          } else {
-            newItems = [...prev.items, { item, quantity: 1 }];
-          }
-        }
+  const saveCart = async () => {
+    try {
+      await AsyncStorage.setItem('cart', JSON.stringify({
+        items,
+        restaurantId,
+        restaurantName,
+      }));
+    } catch (error) {
+      console.error('Error saving cart:', error);
+    }
+  };
 
-        const newCart = { items: newItems, restaurantId: rId, restaurantName: rName };
-        persist(newCart);
-        return newCart;
-      });
-    },
-    [persist]
-  );
+  const addToCart = (item: Omit<CartItem, 'quantity'>) => {
+    // If cart has items from a different restaurant, ask to clear
+    if (restaurantId && restaurantId !== item.restaurantId) {
+      // For now, we'll clear and add new
+      setItems([]);
+      setRestaurantId(item.restaurantId);
+      setRestaurantName(item.restaurantName);
+      setItems([{ ...item, quantity: 1 }]);
+      return;
+    }
 
-  const removeItem = useCallback(
-    (itemId: string) => {
-      setCart((prev) => {
-        const newItems = prev.items.filter((c) => c.item.id !== itemId);
-        const newCart: CartState = {
-          items: newItems,
-          restaurantId: newItems.length > 0 ? prev.restaurantId : null,
-          restaurantName: newItems.length > 0 ? prev.restaurantName : null,
-        };
-        persist(newCart);
-        return newCart;
-      });
-    },
-    [persist]
-  );
+    // If cart is empty, set restaurant
+    if (items.length === 0) {
+      setRestaurantId(item.restaurantId);
+      setRestaurantName(item.restaurantName);
+    }
 
-  const updateQuantity = useCallback(
-    (itemId: string, delta: number) => {
-      setCart((prev) => {
-        const newItems = prev.items
-          .map((c) => (c.item.id === itemId ? { ...c, quantity: c.quantity + delta } : c))
-          .filter((c) => c.quantity > 0);
-        const newCart: CartState = {
-          items: newItems,
-          restaurantId: newItems.length > 0 ? prev.restaurantId : null,
-          restaurantName: newItems.length > 0 ? prev.restaurantName : null,
-        };
-        persist(newCart);
-        return newCart;
-      });
-    },
-    [persist]
-  );
+    // Check if item already exists
+    const existingIndex = items.findIndex(i => i.id === item.id);
+    if (existingIndex >= 0) {
+      const updated = [...items];
+      updated[existingIndex].quantity += 1;
+      setItems(updated);
+    } else {
+      setItems([...items, { ...item, quantity: 1 }]);
+    }
+  };
 
-  const clearCart = useCallback(() => {
-    const empty: CartState = { items: [], restaurantId: null, restaurantName: null };
-    setCart(empty);
-    AsyncStorage.removeItem("cart");
-  }, []);
+  const updateQuantity = (itemId: string, change: number) => {
+    const updated = items.map(item => {
+      if (item.id === itemId) {
+        const newQty = item.quantity + change;
+        if (newQty <= 0) return null;
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }).filter(Boolean) as CartItem[];
+    
+    setItems(updated);
+    if (updated.length === 0) {
+      setRestaurantId(null);
+      setRestaurantName(null);
+    }
+  };
 
-  const getQuantity = useCallback(
-    (itemId: string) => {
-      return cart.items.find((c) => c.item.id === itemId)?.quantity ?? 0;
-    },
-    [cart.items]
-  );
+  const removeItem = (itemId: string) => {
+    const updated = items.filter(item => item.id !== itemId);
+    setItems(updated);
+    if (updated.length === 0) {
+      setRestaurantId(null);
+      setRestaurantName(null);
+    }
+  };
 
-  const itemCount = cart.items.reduce((sum, c) => sum + c.quantity, 0);
-  const subtotal = cart.items.reduce((sum, c) => sum + c.item.price * c.quantity, 0);
+  const clearCart = () => {
+    setItems([]);
+    setRestaurantId(null);
+    setRestaurantName(null);
+    AsyncStorage.removeItem('cart');
+  };
+
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const getCartCount = () => totalItems;
 
   return (
-    <CartContext.Provider
-      value={{
-        items: cart.items,
-        restaurantId: cart.restaurantId,
-        restaurantName: cart.restaurantName,
-        addItem,
-        removeItem,
-        updateQuantity,
-        getQuantity,
-        clearCart,
-        itemCount,
-        subtotal,
-      }}
-    >
+    <CartContext.Provider value={{
+      items,
+      restaurantId,
+      restaurantName,
+      subtotal,
+      totalItems,
+      addToCart,
+      updateQuantity,
+      removeItem,
+      clearCart,
+      getCartCount,
+    }}>
       {children}
     </CartContext.Provider>
   );
-}
-
-export function useCart() {
-  const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used within CartProvider");
-  return ctx;
-}
+};
