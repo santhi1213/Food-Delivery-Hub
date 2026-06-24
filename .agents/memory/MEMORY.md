@@ -1,2 +1,5 @@
 - [react-native-maps web crash](rn-maps-web.md) — never import react-native-maps at module level; use .native.tsx + .tsx platform split
 - [MongoDB Atlas dev setup](mongodb-atlas.md) — server must not exit on DB connection failure; Atlas IP whitelist required
+- [API server port fix](api-server-port.md) — hardcoded port 5000 in index.ts must use process.env["PORT"] ?? 8080; workflow expects 8080
+- [CartItem shape](cart-item-shape.md) — CartItem is flat (id, name, price, quantity, isVeg), NOT nested as { item, quantity }
+- [Alert.alert web broken](alert-web.md) — Alert.alert with onPress callbacks silently fails on web; use inline state banners instead

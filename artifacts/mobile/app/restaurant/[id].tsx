@@ -121,7 +121,7 @@
 //       if (response && response.success && response.data) {
 //         console.log('🏪 Setting restaurant:', response.data.name);
 //         console.log('📋 Menu items:', response.data.menu?.length || 0, 'categories');
-//         setRestaurant(response.data);
+//         setRestaurant(response.data as unknown as RestaurantData);
 //       } else {
 //         console.warn('⚠️ No restaurant found in response');
 //         setError('Restaurant not found');
@@ -860,7 +860,7 @@
 //       if (response && response.success && response.data) {
 //         console.log('🏪 Setting restaurant:', response.data.name);
 //         console.log('📋 Menu items:', response.data.menu?.length || 0, 'categories');
-//         setRestaurant(response.data);
+//         setRestaurant(response.data as unknown as RestaurantData);
 //       } else {
 //         console.warn('⚠️ No restaurant found in response');
 //         setError('Restaurant not found');
@@ -1658,7 +1658,7 @@ export default function RestaurantDetailsScreen() {
       if (response && response.success && response.data) {
         console.log('🏪 Setting restaurant:', response.data.name);
         console.log('📋 Menu items:', response.data.menu?.length || 0, 'categories');
-        setRestaurant(response.data);
+        setRestaurant(response.data as unknown as RestaurantData);
       } else {
         console.warn('⚠️ No restaurant found in response');
         setError('Restaurant not found');

@@ -10,7 +10,8 @@ import { useColors } from "@/hooks/useColors";
 export function CartBar() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { itemCount, subtotal } = useCart();
+  const { totalItems, subtotal } = useCart();
+  const itemCount = totalItems;
 
   if (itemCount === 0) return null;
 

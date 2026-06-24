@@ -28,12 +28,16 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     let razorpayOrderId: string | undefined;
 
     if (paymentMethod !== "cod") {
-      const rpOrder = await razorpay.orders.create({
-        amount: Math.round(total * 100),
-        currency: "INR",
-        receipt: `order_${Date.now()}`,
-      });
-      razorpayOrderId = rpOrder.id;
+      try {
+        const rpOrder = await razorpay.orders.create({
+          amount: Math.round(total * 100),
+          currency: "INR",
+          receipt: `order_${Date.now()}`,
+        });
+        razorpayOrderId = rpOrder.id;
+      } catch (rpErr) {
+        req.log.warn({ err: rpErr }, "Razorpay order creation failed — proceeding without payment ID");
+      }
     }
 
     const order = await Order.create({

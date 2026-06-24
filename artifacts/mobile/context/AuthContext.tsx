@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const { token: t, user: u } = await api.auth.login(email, password);
-    const normalized: User = { id: u._id ?? u.id, ...u };
+    const normalized: User = { ...(u as any), id: (u as any)._id ?? (u as any).id };
     await saveSession(t, normalized);
     // Seed DB on first login if needed
     api.seed.restaurants().catch(() => {});
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (name: string, email: string, phone: string, password: string) => {
     const { token: t, user: u } = await api.auth.register({ name, email, phone, password });
-    const normalized: User = { id: u._id ?? u.id, ...u };
+    const normalized: User = { ...(u as any), id: (u as any)._id ?? (u as any).id };
     await saveSession(t, normalized);
     api.seed.restaurants().catch(() => {});
   };
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     try {
       const { user: u } = await api.auth.me();
-      const normalized: User = { id: u._id ?? u.id, ...u };
+      const normalized: User = { ...(u as any), id: (u as any)._id ?? (u as any).id };
       setUser(normalized);
       await AsyncStorage.setItem("user", JSON.stringify(normalized));
     } catch {}

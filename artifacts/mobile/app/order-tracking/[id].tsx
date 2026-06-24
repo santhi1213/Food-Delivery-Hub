@@ -563,6 +563,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -766,7 +767,7 @@ export default function OrderTrackingScreen() {
           
           <TouchableOpacity
             style={[styles.supportBtn, { backgroundColor: colors.secondary }]}
-            onPress={() => router.push("/support")}
+            onPress={() => router.push("/(tabs)/profile")}
           >
             <Ionicons name="headset-outline" size={20} color={colors.primary} />
             <Text style={[styles.supportBtnText, { color: colors.primary }]}>Contact Support</Text>
