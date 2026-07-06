@@ -6,8 +6,8 @@ import { requireAuth, AuthRequest } from "../middlewares/auth";
 const router = Router();
 
 const razorpay = new Razorpay({
-  key_id: "rzp_test_T0cnpwfJWdXQvy",
-  key_secret: "itm6sotg1tiTppIv9GaeRahE",
+  key_id: "rzp_test_T8h3mZNOBzodtp",
+  key_secret: "frnUtPJOH2ROId2yjDILdEh2",
 });
 
 // Create a payment order (doesn't save to database)

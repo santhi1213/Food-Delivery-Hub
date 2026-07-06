@@ -8,7 +8,8 @@ export type OrderStatus =
   | "picked_up"
   | "on_the_way"
   | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "pending_payment";
 
 export interface IOrderItem {
   itemId: string;
@@ -45,7 +46,7 @@ export interface IOrder extends Document {
 const OrderSchema = new Schema<IOrder>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    restaurantId: { type: String, required: true },
+    restaurantId: { type: Schema.Types.ObjectId, ref: "Restaurant", required: true }, // was String
     restaurantName: { type: String, required: true },
     items: [
       {
@@ -58,7 +59,7 @@ const OrderSchema = new Schema<IOrder>(
     ],
     status: {
       type: String,
-      enum: ["placed", "confirmed", "preparing", "ready", "picked_up", "on_the_way", "delivered", "cancelled"],
+      enum: ["placed", "confirmed", "preparing", "ready", "picked_up", "on_the_way", "delivered", "cancelled", "pending_payment"],
       default: "placed",
     },
     subtotal: Number,

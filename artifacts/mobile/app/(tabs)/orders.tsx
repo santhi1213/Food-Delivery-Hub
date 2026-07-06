@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,9 +31,15 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  // useEffect(() => {
+  //   fetchOrders();
+  // }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [])
+  );
 
   const fetchOrders = async () => {
     try {
@@ -79,17 +87,17 @@ export default function OrdersScreen() {
           </Text>
         </View>
       </View>
-      
+
       <Text style={[styles.orderDate, { color: colors.mutedForeground }]}>
         {formatDate(order.createdAt)}
       </Text>
-      
+
       <View style={styles.orderItems}>
         <Text style={[styles.orderItemsText, { color: colors.mutedForeground }]} numberOfLines={1}>
           {order.items?.map((item: any) => `${item.qty || item.quantity}× ${item.name}`).join(', ')}
         </Text>
       </View>
-      
+
       <View style={styles.orderFooter}>
         <Text style={[styles.orderTotal, { color: colors.foreground }]}>
           ₹{order.total}

@@ -105,35 +105,35 @@ export default function CartScreen() {
                 {item.name}
               </Text>
               <View style={[styles.qtyControl, { backgroundColor: colors.primary }]}>
-                {/* <TouchableOpacity
-                  onPress={() => {
-                    if (item.quantity === 1) {
-                      Alert.alert("Remove Item", `Remove ${item.name} from cart?`, [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Remove", style: "destructive", onPress: () => removeItem(item.id) },
-                      ]);
-                    } else {
-                      updateQuantity(item.id, -1);
-                    }
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
-                >
-                  <Ionicons name={item.quantity === 1 ? "trash-outline" : "remove"} size={15} color="#fff" />
-                </TouchableOpacity> */}
                 <TouchableOpacity
                   onPress={() => {
                     if (item.quantity === 1) {
-                      Alert.alert("Remove Item", `Remove ${item.name} from cart?`, [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Remove", style: "destructive", onPress: () => removeItem(item.id) },
-                      ]);
+                      Alert.alert(
+                        "Remove Item",
+                        `Remove ${item.name} from cart?`,
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          { 
+                            text: "Remove", 
+                            style: "destructive", 
+                            onPress: () => {
+                              console.log('🗑️ Removing item via alert:', item.id);
+                              removeItem(item.id);
+                            }
+                          },
+                        ]
+                      );
                     } else {
                       updateQuantity(item.id, -1);
                     }
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
                 >
-                  <Ionicons name={item.quantity === 1 ? "trash-outline" : "remove"} size={15} color="#fff" />
+                  <Ionicons 
+                    name={item.quantity === 1 ? "trash-outline" : "remove"} 
+                    size={15} 
+                    color="#fff" 
+                  />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{item.quantity}</Text>
                 <TouchableOpacity onPress={() => updateQuantity(item.id, 1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
@@ -435,4 +435,3 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold"
   },
 });
-

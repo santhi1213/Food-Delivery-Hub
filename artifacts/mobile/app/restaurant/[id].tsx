@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Alert,
   Dimensions,
+  FlatList,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,21 +21,23 @@ import { useColors } from '@/hooks/useColors';
 
 const { width } = Dimensions.get('window');
 
+// Menu Item interface matching backend
 interface MenuItem {
-  _id?: string;
+  _id: string;
   name: string;
   description: string;
   price: number;
+  discountPercentage?: number;
+  offerPrice?: number;
   isVeg: boolean;
   isAvailable: boolean;
-  image?: string;
-  customizations?: any[];
-}
-
-interface MenuCategory {
-  _id?: string;
-  category: string;
-  items: MenuItem[];
+  isBestseller?: boolean;
+  isPopular?: boolean;
+  isTrending?: boolean;
+  preparationTime?: number;
+  images?: string[];
+  categoryId?: string;
+  categoryName?: string;
 }
 
 interface RestaurantData {
@@ -59,18 +62,14 @@ interface RestaurantData {
     pincode?: string;
     coordinates?: { lat: number; lng: number };
   };
-  location: {
-    type: string;
-    coordinates: number[];
-  };
   images: string[];
   logo?: string;
   coverImage?: string;
   phone?: string;
   email?: string;
   tags: string[];
-  menu: MenuCategory[];
-  reviews: any[];
+  menuItems?: MenuItem[];
+  menu?: MenuItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -87,10 +86,10 @@ export default function RestaurantDetailsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
 
+  // Auto-hide toast after 2 seconds
   useEffect(() => {
     if (toastVisible) {
       const timer = setTimeout(() => {
@@ -101,14 +100,9 @@ export default function RestaurantDetailsScreen() {
     }
   }, [toastVisible]);
 
-  console.log('📱 RestaurantDetailsScreen mounted with ID:', id);
-
-  // Fetch restaurant details
+  // Fetch restaurant details from API
   const fetchRestaurant = async (refresh = false) => {
-    console.log('🔍 fetchRestaurant called, ID:', id);
-
     if (!id) {
-      console.error('❌ No ID provided to fetchRestaurant');
       setError('Restaurant ID not found');
       setLoading(false);
       return;
@@ -123,27 +117,25 @@ export default function RestaurantDetailsScreen() {
       setError(null);
 
       console.log(`📡 Fetching restaurant with ID: ${id}`);
-
       const response = await api.restaurants.get(id);
-
-      console.log('✅ Restaurant response:', response);
+      console.log('✅ Restaurant response received');
 
       if (response && response.success && response.data) {
-        console.log('🏪 Setting restaurant:', response.data.name);
-        console.log('📋 Menu items:', response.data.menu?.length || 0, 'categories');
-        setRestaurant(response.data as unknown as RestaurantData);
+        const restaurantData = response.data as unknown as RestaurantData;
+        
+        // Log menu items for debugging
+        const menuItems = restaurantData.menuItems || restaurantData.menu || [];
+        console.log(`📋 Menu items count: ${menuItems.length}`);
+        
+        setRestaurant(restaurantData);
       } else {
-        console.warn('⚠️ No restaurant found in response');
         setError('Restaurant not found');
       }
     } catch (err) {
       console.error('❌ Error fetching restaurant:', err);
-
       if (err instanceof ApiError) {
-        console.error('API Error:', err.message, err.status);
         setError(err.message);
       } else if (err instanceof Error) {
-        console.error('Error:', err.message);
         setError(err.message);
       } else {
         setError('Failed to load restaurant details');
@@ -155,84 +147,89 @@ export default function RestaurantDetailsScreen() {
   };
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered with ID:', id);
     if (id) {
       fetchRestaurant();
-    } else {
-      console.error('❌ No ID in params');
     }
   }, [id]);
 
-  // Handle refresh
+  // Pull to refresh handler
   const onRefresh = () => {
-    console.log('🔄 Pull to refresh');
     fetchRestaurant(true);
   };
 
-  // Handle add to cart
-  // const handleAddToCart = (item: MenuItem, categoryName: string) => {
-  //   console.log('🛒 Adding to cart:', item);
-  //   if (!restaurant) {
-  //     console.error('❌ No restaurant found for cart');
-  //     return;
-  //   }
-
-  //   addToCart({
-  //     id: item._id || `item_${Date.now()}`,
-  //     name: item.name,
-  //     price: item.price,
-  //     isVeg: item.isVeg,
-  //     restaurantId: restaurant._id,
-  //     restaurantName: restaurant.name,
-  //   });
-
-  //   Alert.alert('Success', `${item.name} added to cart!`);
-  // };
-
-  const handleAddToCart = (item: MenuItem, categoryName: string) => {
-    console.log('🛒 Adding to cart:', item);
+  // Add item to cart with validation
+  const handleAddToCart = (item: MenuItem) => {
     if (!restaurant) {
-      console.error('❌ No restaurant found for cart');
+      Alert.alert('Error', 'Restaurant not found');
+      return;
+    }
+
+    if (!item.isAvailable) {
+      Alert.alert('Unavailable', `${item.name} is currently unavailable`);
       return;
     }
 
     addToCart({
-      id: item._id || `item_${Date.now()}`,
+      id: item._id,
       name: item.name,
       price: item.price,
       isVeg: item.isVeg,
       restaurantId: restaurant._id,
       restaurantName: restaurant.name,
+      quantity: 1,
     });
 
-    // Show toast feedback
     setToastMessage(`${item.name} added to cart!`);
     setToastVisible(true);
+  };
 
-    // Also keep the Alert for now, but toast is the primary feedback
-    // Alert.alert('Success', `${item.name} added to cart!`);
+  // Get menu items from either menuItems or menu array
+  const getMenuItems = (): MenuItem[] => {
+    if (!restaurant) return [];
+    
+    const items = restaurant.menuItems || restaurant.menu || [];
+    
+    // If it's a flat array of menu items
+    if (Array.isArray(items) && items.length > 0 && 'name' in items[0]) {
+      return items as MenuItem[];
+    }
+    
+    // If it's a categorized menu (old format with 'items' property)
+    if (Array.isArray(items) && items.length > 0 && 'items' in items[0]) {
+      const flatItems: MenuItem[] = [];
+      items.forEach((category: any) => {
+        if (category.items && Array.isArray(category.items)) {
+          flatItems.push(...category.items);
+        }
+      });
+      return flatItems;
+    }
+    
+    return [];
   };
 
   // Get unique categories from menu
-  const getUniqueCategories = () => {
-    if (!restaurant || !restaurant.menu) return [];
-    return restaurant.menu.map(category => category.category);
+  const getCategories = (): string[] => {
+    const items = getMenuItems();
+    const categories = new Set<string>();
+    items.forEach(item => {
+      if (item.categoryName) {
+        categories.add(item.categoryName);
+      }
+    });
+    return Array.from(categories);
   };
 
-  // Get filtered menu items
-  const getFilteredMenu = () => {
-    if (!restaurant || !restaurant.menu) return [];
-
+  // Filter menu items by selected category
+  const getFilteredItems = (): MenuItem[] => {
+    const items = getMenuItems();
     if (selectedCategory) {
-      return restaurant.menu.filter(
-        category => category.category === selectedCategory
-      );
+      return items.filter(item => item.categoryName === selectedCategory);
     }
-
-    return restaurant.menu;
+    return items;
   };
 
-  // Render loading state
+  // Loading state
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -244,7 +241,7 @@ export default function RestaurantDetailsScreen() {
     );
   }
 
-  // Render error state
+  // Error state
   if (error || !restaurant) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background, padding: 20 }]}>
@@ -254,19 +251,13 @@ export default function RestaurantDetailsScreen() {
         </Text>
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: colors.primary }]}
-          onPress={() => {
-            console.log('🔄 Retry button pressed');
-            fetchRestaurant();
-          }}
+          onPress={() => fetchRestaurant()}
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.goBackButton, { marginTop: 10 }]}
-          onPress={() => {
-            console.log('🔙 Go back button pressed');
-            router.back();
-          }}
+          onPress={() => router.back()}
         >
           <Text style={[styles.goBackButtonText, { color: colors.primary }]}>Go Back</Text>
         </TouchableOpacity>
@@ -274,30 +265,100 @@ export default function RestaurantDetailsScreen() {
     );
   }
 
-  const uniqueCategories = getUniqueCategories();
-  const filteredMenu = getFilteredMenu();
+  const menuItems = getFilteredItems();
+  const categories = getCategories();
+  const isOpen = restaurant.isOpen !== undefined ? restaurant.isOpen : true;
 
-  // Get the first image or placeholder
   const coverImage = restaurant.images?.[0] ||
     restaurant.coverImage ||
     'https://via.placeholder.com/800x300/ff4757/ffffff?text=Restaurant';
 
-  // Check if restaurant is open
-  const isOpen = restaurant.isOpen !== undefined ? restaurant.isOpen : true;
-
-  // Get cuisine as string
   const cuisineText = Array.isArray(restaurant.cuisine)
     ? restaurant.cuisine.join(' • ')
     : restaurant.cuisine || '';
 
-  // Get address as string
   const addressText = restaurant.address
     ? `${restaurant.address.locality || ''}, ${restaurant.address.city || ''}`
     : 'Location not specified';
 
+  // Render individual menu item
+  const renderMenuItem = ({ item }: { item: MenuItem }) => {
+    const discountPrice = item.discountPercentage 
+      ? item.price * (1 - item.discountPercentage / 100) 
+      : item.price;
+
+    return (
+      <View style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+        <View style={styles.menuItemLeft}>
+          <View style={styles.menuItemHeader}>
+            <View style={styles.menuItemNameRow}>
+              <View style={[styles.vegIndicator, { borderColor: item.isVeg ? '#4CAF50' : '#f44336' }]}>
+                <View style={[styles.vegDot, { backgroundColor: item.isVeg ? '#4CAF50' : '#f44336' }]} />
+              </View>
+              <Text style={[styles.menuItemName, { color: colors.foreground }]}>
+                {item.name}
+              </Text>
+              {item.isBestseller && (
+                <View style={[styles.badge, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={[styles.badgeText, { color: '#92400E' }]}>Bestseller</Text>
+                </View>
+              )}
+              {!item.isAvailable && (
+                <View style={[styles.badge, { backgroundColor: '#FEE2E2' }]}>
+                  <Text style={[styles.badgeText, { color: '#DC2626' }]}>Unavailable</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.menuItemDescription, { color: colors.mutedForeground }]} numberOfLines={2}>
+              {item.description || 'No description available'}
+            </Text>
+            <View style={styles.menuItemPriceRow}>
+              <Text style={[styles.menuItemPrice, { color: colors.foreground }]}>
+                ₹{discountPrice.toFixed(2)}
+              </Text>
+              {item.discountPercentage && item.discountPercentage > 0 && (
+                <Text style={[styles.originalPrice, { color: colors.mutedForeground }]}>
+                  ₹{item.price.toFixed(2)}
+                </Text>
+              )}
+              {item.preparationTime && (
+                <Text style={[styles.prepTime, { color: colors.mutedForeground }]}>
+                  • {item.preparationTime} min
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+        <View style={styles.menuItemRight}>
+          {item.images && item.images.length > 0 && (
+            <Image 
+              source={{ uri: item.images[0] }} 
+              style={styles.menuItemImage}
+              resizeMode="cover"
+            />
+          )}
+          {item.isAvailable !== false ? (
+            <TouchableOpacity
+              style={[styles.addButton, { borderColor: colors.primary }]}
+              onPress={() => handleAddToCart(item)}
+            >
+              <Text style={[styles.addButtonText, { color: colors.primary }]}>ADD</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.unavailableButton, { backgroundColor: colors.muted }]}>
+              <Text style={[styles.unavailableButtonText, { color: colors.mutedForeground }]}>
+                Unavailable
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header with Back Button and Cart */}
+      {/* Header */}
       <View style={[styles.header, {
         paddingTop: insets.top + 8,
         backgroundColor: colors.card,
@@ -310,14 +371,12 @@ export default function RestaurantDetailsScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </TouchableOpacity>
-
         <Text style={[styles.headerTitle, { color: colors.foreground }]} numberOfLines={1}>
           {restaurant.name}
         </Text>
-
         <TouchableOpacity
           style={styles.cartBtn}
-          onPress={() => router.push("/cart")}
+          onPress={() => router.push('/cart')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="cart-outline" size={24} color={colors.foreground} />
@@ -395,55 +454,16 @@ export default function RestaurantDetailsScreen() {
               {restaurant.description}
             </Text>
           ) : null}
-
-          {/* Details Row */}
-          <View style={styles.detailsRow}>
-            <View style={styles.detailItem}>
-              <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
-                Min Order
-              </Text>
-              <Text style={[styles.detailValue, { color: colors.foreground }]}>
-                ₹{restaurant.minimumOrder || 0}
-              </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
-                Delivery Fee
-              </Text>
-              <Text style={[styles.detailValue, { color: colors.foreground }]}>
-                ₹{restaurant.deliveryFee || 0}
-              </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
-                Categories
-              </Text>
-              <Text style={[styles.detailValue, { color: colors.foreground }]}>
-                {restaurant.menu?.length || 0}
-              </Text>
-            </View>
-          </View>
-
-          {/* Tags */}
-          {restaurant.tags && restaurant.tags.length > 0 ? (
-            <View style={styles.tagsContainer}>
-              {restaurant.tags.map((tag, index) => (
-                <View key={index} style={[styles.tag, { backgroundColor: colors.primary + '20' }]}>
-                  <Text style={[styles.tagText, { color: colors.primary }]}>
-                    {tag}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
         </View>
 
         {/* Menu Section */}
         <View style={[styles.menuContainer, { backgroundColor: colors.card, marginTop: 12 }]}>
-          <Text style={[styles.menuTitle, { color: colors.foreground }]}>Menu</Text>
+          <Text style={[styles.menuTitle, { color: colors.foreground }]}>
+            Menu ({menuItems.length} items)
+          </Text>
 
           {/* Category Filters */}
-          {uniqueCategories.length > 1 ? (
+          {categories.length > 0 && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -455,10 +475,7 @@ export default function RestaurantDetailsScreen() {
                   styles.categoryChip,
                   !selectedCategory && { backgroundColor: colors.primary }
                 ]}
-                onPress={() => {
-                  console.log('📂 All categories selected');
-                  setSelectedCategory(null);
-                }}
+                onPress={() => setSelectedCategory(null)}
               >
                 <Text style={[
                   styles.categoryChipText,
@@ -468,17 +485,14 @@ export default function RestaurantDetailsScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {uniqueCategories.map((category) => (
+              {categories.map((category) => (
                 <TouchableOpacity
                   key={category}
                   style={[
                     styles.categoryChip,
                     selectedCategory === category && { backgroundColor: colors.primary }
                   ]}
-                  onPress={() => {
-                    console.log(`📂 Category selected: ${category}`);
-                    setSelectedCategory(category);
-                  }}
+                  onPress={() => setSelectedCategory(category)}
                 >
                   <Text style={[
                     styles.categoryChipText,
@@ -489,57 +503,16 @@ export default function RestaurantDetailsScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          ) : null}
+          )}
 
-          {/* Menu Items */}
-          {filteredMenu && filteredMenu.length > 0 ? (
-            filteredMenu.map((category) => (
-              <View key={category._id || category.category} style={styles.menuSection}>
-                <Text style={[styles.menuCategory, { color: colors.foreground }]}>
-                  {category.category}
-                </Text>
-                {category.items.map((item) => {
-                  const itemId = item._id || `item_${Date.now()}`;
-
-                  return (
-                    <View key={itemId} style={[styles.menuItem, { borderBottomColor: colors.border }]}>
-                      <View style={styles.menuItemInfo}>
-                        <View style={styles.menuItemHeader}>
-                          <Text style={[styles.menuItemName, { color: colors.foreground }]}>
-                            {item.name}
-                          </Text>
-                          {item.isVeg ? (
-                            <View style={styles.vegBadge}>
-                              <Text style={styles.vegBadgeText}>Veg</Text>
-                            </View>
-                          ) : (
-                            <View style={[styles.vegBadge, { backgroundColor: '#f44336' }]}>
-                              <Text style={styles.vegBadgeText}>Non-Veg</Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text style={[styles.menuItemDescription, { color: colors.mutedForeground }]}>
-                          {item.description || 'No description available'}
-                        </Text>
-                        <Text style={[styles.menuItemPrice, { color: colors.foreground }]}>
-                          ₹{item.price}
-                        </Text>
-                      </View>
-                      {item.isAvailable !== false ? (
-                        <TouchableOpacity
-                          style={[styles.addButton, { borderColor: colors.primary }]}
-                          onPress={() => handleAddToCart(item, category.category)}
-                        >
-                          <Text style={[styles.addButtonText, { color: colors.primary }]}>
-                            ADD
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-                  );
-                })}
-              </View>
-            ))
+          {/* Menu Items List */}
+          {menuItems.length > 0 ? (
+            <FlatList
+              data={menuItems}
+              keyExtractor={(item) => item._id}
+              renderItem={renderMenuItem}
+              scrollEnabled={false}
+            />
           ) : (
             <View style={styles.emptyMenu}>
               <Ionicons name="restaurant-outline" size={48} color={colors.mutedForeground} />
@@ -550,8 +523,10 @@ export default function RestaurantDetailsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Toast Notification */}
       {toastVisible && toastMessage && (
-        <View style={[styles.toast, { backgroundColor: colors.success }]}>
+        <View style={[styles.toast, { backgroundColor: colors.success || '#4CAF50' }]}>
           <Ionicons name="checkmark-circle" size={20} color="#fff" />
           <Text style={styles.toastText}>{toastMessage}</Text>
         </View>
@@ -619,7 +594,7 @@ const styles = StyleSheet.create({
   },
   coverImage: {
     width: width,
-    height: 250,
+    height: 200,
   },
   infoContainer: {
     padding: 16,
@@ -631,6 +606,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
+    fontFamily: 'Inter_700Bold',
   },
   row: {
     flexDirection: 'row',
@@ -675,39 +651,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
-  detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  detailItem: {
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
   menuContainer: {
     padding: 16,
     marginBottom: 20,
@@ -716,6 +659,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 12,
+    fontFamily: 'Inter_700Bold',
   },
   categoryScroll: {
     marginBottom: 12,
@@ -736,53 +680,86 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  menuSection: {
-    marginTop: 12,
-  },
-  menuCategory: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  menuItemInfo: {
+  menuItemLeft: {
     flex: 1,
     marginRight: 12,
   },
   menuItemHeader: {
+    flex: 1,
+  },
+  menuItemNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginBottom: 4,
     flexWrap: 'wrap',
   },
+  vegIndicator: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vegDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
   menuItemName: {
     fontSize: 16,
     fontWeight: '500',
+    fontFamily: 'Inter_600SemiBold',
   },
-  vegBadge: {
-    backgroundColor: '#4CAF50',
+  badge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  vegBadgeText: {
-    color: 'white',
+  badgeText: {
     fontSize: 10,
     fontWeight: '600',
   },
   menuItemDescription: {
     fontSize: 13,
     marginBottom: 4,
+    fontFamily: 'Inter_400Regular',
+  },
+  menuItemPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   menuItemPrice: {
     fontSize: 15,
     fontWeight: '600',
+    fontFamily: 'Inter_700Bold',
+  },
+  originalPrice: {
+    fontSize: 13,
+    textDecorationLine: 'line-through',
+    fontFamily: 'Inter_400Regular',
+  },
+  prepTime: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+  },
+  menuItemRight: {
+    alignItems: 'center',
+    gap: 8,
+    width: 88,
+  },
+  menuItemImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
   },
   addButton: {
     borderWidth: 1,
@@ -797,6 +774,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  unavailableButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  unavailableButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
   emptyMenu: {
     padding: 40,
     alignItems: 'center',
@@ -804,15 +790,18 @@ const styles = StyleSheet.create({
   },
   emptyMenuText: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
   },
   errorText: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
+    fontFamily: 'Inter_400Regular',
   },
   retryButton: {
     paddingHorizontal: 30,
@@ -857,4 +846,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
