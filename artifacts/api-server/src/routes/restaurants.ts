@@ -42,6 +42,7 @@ router.post("/", async (req, res) => {
       cuisine: Array.isArray(req.body.cuisine) ? req.body.cuisine : [req.body.cuisine || 'Unknown'],
       deliveryTime: 30,
       minimumOrder: req.body.minOrder || 0,
+      coverImage: req.body.coverImage || '',
       address: {
         street: req.body.address || '',
         locality: req.body.address?.split(',')[0]?.trim() || '',

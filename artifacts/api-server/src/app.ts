@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import deliveryWebhookRouter from "./routes/deliveryWebhooks";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/api", router);
+app.use("/api", deliveryWebhookRouter);
 
 // DEBUG: Test route directly on app
 app.get("/test", (req, res) => {

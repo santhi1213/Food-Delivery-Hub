@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Platform,
   ScrollView,
@@ -16,6 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCart } from "@/context/CartContext";
 import { useColors } from "@/hooks/useColors";
 
+import { api } from "@/lib/api"; // 👈 Ensure api is imported
+import { useAuth } from "@/context/AuthContext";
+
 const COUPONS: Record<string, number> = {
   FIRST50: 50,
   SAVE100: 100,
@@ -25,13 +29,64 @@ const COUPONS: Record<string, number> = {
 export default function CartScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { items, restaurantName, updateQuantity, removeItem, subtotal } = useCart();
+  const { items, restaurantName, updateQuantity, removeItem, subtotal, restaurantId } = useCart();
   const [coupon, setCoupon] = useState("");
+  const { user } = useAuth();
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [couponError, setCouponError] = useState("");
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  // const topPad = Platform.OS === "web" ? 67 : insets.top;
 
-  const deliveryFee = subtotal > 0 ? (subtotal > 499 ? 0 : 29) : 0;
+  // const deliveryFee = subtotal > 0 ? (subtotal > 499 ? 0 : 29) : 0;
+
+  
+    // 👈 ADD State variables to manage dynamic courier quotation metrics
+    const [deliveryFee, setDeliveryFee] = useState(0);
+    const [fetchingQuote, setFetchingQuote] = useState(false);
+  
+    const topPad = Platform.OS === "web" ? 67 : insets.top;
+  
+    // 👈 ADD dynamic pickup quotation retrieval effect loop hook
+    useEffect(() => {
+      async function fetchLiveQuote() {
+        if (items.length === 0 || !restaurantId) return;
+        
+        setFetchingQuote(true);
+        try {
+          // Fallback defaults if explicit maps are unconfigured
+          let lat = 12.9279;
+          let lng = 77.6271;
+  
+          // Extract coordinates from user's current primary address mapping
+          if (user?.addresses && user.addresses.length > 0) {
+            const activeAddr = user.addresses[0];
+            if (activeAddr.lat && activeAddr.lng) {
+              lat = activeAddr.lat;
+              lng = activeAddr.lng;
+            }
+          }
+  
+          const res = await api.orders.getDeliveryQuote({
+            restaurantId,
+            latitude: lat,
+            longitude: lng,
+          });
+  
+          if (res.success) {
+            setDeliveryFee(res.deliveryFee);
+          }
+        } catch (err) {
+          console.warn("Failed to retrieve server delivery cost quote, using safety baseline pricing parameters:", err);
+          setDeliveryFee(35); // Safety baseline pricing parameter
+        } finally {
+          setFetchingQuote(false);
+        }
+      }
+  
+      fetchLiveQuote();
+    }, [items, restaurantId, user]);
+
+  // const tax = Math.round(subtotal * 0.05);
+  // const total = subtotal + deliveryFee + tax - appliedDiscount;
   const tax = Math.round(subtotal * 0.05);
   const total = subtotal + deliveryFee + tax - appliedDiscount;
 
@@ -201,6 +256,42 @@ export default function CartScreen() {
               </Text>
             </View>
           ))}
+          <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+            <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total</Text>
+            <Text style={[styles.totalValue, { color: colors.foreground }]}>₹{total}</Text>
+          </View>
+        </View>
+         <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Bill Summary</Text>
+          
+          <View style={styles.billRow}>
+            <Text style={[styles.billLabel, { color: colors.mutedForeground }]}>Item Total</Text>
+            <Text style={[styles.billValue, { color: colors.foreground }]}>₹{subtotal}</Text>
+          </View>
+
+          <View style={styles.billRow}>
+            <Text style={[styles.billLabel, { color: colors.mutedForeground }]}>Delivery Fee (Shadowfax)</Text>
+            {fetchingQuote ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Text style={[styles.billValue, { color: deliveryFee === 0 ? colors.success : colors.foreground }]}>
+                {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.billRow}>
+            <Text style={[styles.billLabel, { color: colors.mutedForeground }]}>GST (5%)</Text>
+            <Text style={[styles.billValue, { color: colors.foreground }]}>₹{tax}</Text>
+          </View>
+
+          {appliedDiscount > 0 && (
+            <View style={styles.billRow}>
+              <Text style={[styles.billLabel, { color: colors.success }]}>Coupon Discount</Text>
+              <Text style={[styles.billValue, { color: colors.success }]}>-₹{appliedDiscount}</Text>
+            </View>
+          )}
+
           <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
             <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total</Text>
             <Text style={[styles.totalValue, { color: colors.foreground }]}>₹{total}</Text>

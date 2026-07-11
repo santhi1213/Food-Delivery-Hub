@@ -118,23 +118,59 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+// router.post("/:id/cancel", requireAuth, async (req: AuthRequest, res) => {
+//   try {
+//     const order = await Order.findOne({ _id: req.params["id"], userId: req.userId });
+//     if (!order) { res.status(404).json({ success: false, error: "Order not found" }); return; }
+
+//     if (!["pending_payment", "confirmed", "placed"].includes(order.status)) {
+//       res.status(400).json({ success: false, error: "Order cannot be cancelled at this stage" });
+//       return;
+//     }
+
+//     order.status = "cancelled";
+//     await order.save();
+//     getIO().to(`order:${order._id}`).emit("order:status", { status: "cancelled" });
+
+//     res.json({ success: true, order, message: "Order cancelled successfully" });
+//   } catch (err) {
+//     req.log.error({ err }, "Error cancelling order");
+//     res.status(500).json({ success: false, error: "Cancellation failed" });
+//   }
+// });
+
+// 1. GET Delivery Quote Pre-Checkout Route
+
+router.post("/delivery/quote", requireAuth, async (req, res) => {
+  const { restaurantId, latitude, longitude } = req.body;
+  if (!restaurantId || !latitude || !longitude) {
+    return res.status(400).json({ success: false, error: "Missing required calculation parameters" });
+  }
+  const quote = await getDeliveryQuote(restaurantId, { lat: latitude, lng: longitude });
+  res.json({ success: true, ...quote });
+});
+
+// 2. Customer Cancellation Route with Rider Allocation Protection Safeguard
 router.post("/:id/cancel", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const order = await Order.findOne({ _id: req.params["id"], userId: req.userId });
-    if (!order) { res.status(404).json({ success: false, error: "Order not found" }); return; }
+    const order = await Order.findOne({ _id: req.params.id, userId: req.userId });
+    if (!order) return res.status(404).json({ success: false, error: "Order not found" });
 
-    if (!["pending_payment", "confirmed", "placed"].includes(order.status)) {
-      res.status(400).json({ success: false, error: "Order cannot be cancelled at this stage" });
-      return;
+    // Enforce business rules: stop cancellation if dispatched or picked up
+    const BLOCKED_STATES = ["picked_up", "on_the_way", "delivered"];
+    if (BLOCKED_STATES.includes(order.status) || order.shadowfaxJobId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Order cannot be cancelled as a delivery agent is already assigned or dispatch has begun." 
+      });
     }
 
     order.status = "cancelled";
     await order.save();
+    
     getIO().to(`order:${order._id}`).emit("order:status", { status: "cancelled" });
-
     res.json({ success: true, order, message: "Order cancelled successfully" });
   } catch (err) {
-    req.log.error({ err }, "Error cancelling order");
     res.status(500).json({ success: false, error: "Cancellation failed" });
   }
 });

@@ -490,19 +490,19 @@ export const api = {
   }),
 
   orders: {
-    // Create Razorpay order
+
+    getDeliveryQuote: (data: { restaurantId: string; latitude: number; longitude: number }) =>
+      request<{ success: boolean; deliveryFee: number; source: string; distanceKm: number }>("/delivery/quote", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
     createRazorpayOrder: (data: {
       restaurantId: string;
       restaurantName: string;
-      items: {
-        itemId: string;
-        name: string;
-        qty: number;
-        price: number;
-        isVeg: boolean;
-      }[];
+      items: any[];
       subtotal: number;
-      deliveryFee: number;
+      deliveryFee: number; // Will use the dynamic value instead of a client-side hardcoded fallback
       discount: number;
       tax: number;
       total: number;
@@ -515,18 +515,50 @@ export const api = {
         razorpayKeyId: string;
         amount: number;
         currency: string;
-        order: {
-          _id: string;
-          orderId: string;
-          status: string;
-          total: number;
-          createdAt: string;
-        };
+        order: { _id: string; orderId: string; status: string; total: number; createdAt: string };
         message: string;
       }>("/razorpay/create-razorpay-order", {
         method: "POST",
         body: JSON.stringify(data),
       }),
+
+    // Create Razorpay order
+    // createRazorpayOrder: (data: {
+    //   restaurantId: string;
+    //   restaurantName: string;
+    //   items: {
+    //     itemId: string;
+    //     name: string;
+    //     qty: number;
+    //     price: number;
+    //     isVeg: boolean;
+    //   }[];
+    //   subtotal: number;
+    //   deliveryFee: number;
+    //   discount: number;
+    //   tax: number;
+    //   total: number;
+    //   deliveryAddress: string;
+    //   paymentMethod: string;
+    // }) =>
+    //   request<{
+    //     success: boolean;
+    //     razorpayOrderId: string;
+    //     razorpayKeyId: string;
+    //     amount: number;
+    //     currency: string;
+    //     order: {
+    //       _id: string;
+    //       orderId: string;
+    //       status: string;
+    //       total: number;
+    //       createdAt: string;
+    //     };
+    //     message: string;
+    //   }>("/razorpay/create-razorpay-order", {
+    //     method: "POST",
+    //     body: JSON.stringify(data),
+    //   }),
 
     // Verify Razorpay payment
     verifyRazorpayPayment: (data: {
