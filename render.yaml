@@ -1,0 +1,28 @@
+services:
+  # Food Delivery Hub API Server
+  - type: web
+    name: foodrush-api
+    runtime: node
+    plan: free
+    rootDir: artifacts/api-server
+    buildCommand: |
+      npm install
+      npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        value: mongodb+srv://santhiraju32_db_user:AJKUlUtr6alE8cu3@cluster0.dekolvy.mongodb.net/?appName=Cluster0
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RAZORPAY_KEY_ID
+        value: rzp_test_T8h3mZNOBodtp
+      - key: RAZORPAY_KEY_SECRET
+        value: frnUtPJOH2ROId2yjDILdEh2
+      - key: SHADOWFAX_API_KEY
+        value: d9e70b0f1ca13663f19bd371aec120a31ecfffa2
+      - key: SHADOWFAX_API_URL
+        value: https://flash-backend.shadowfax.in/api/v1
